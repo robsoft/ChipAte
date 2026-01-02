@@ -1,2 +1,2 @@
-﻿using var game = new ChipAte.Game1();
+﻿using var game = new ChipAte.Chip8Wrapper();
 game.Run();
