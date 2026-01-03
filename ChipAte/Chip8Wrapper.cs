@@ -18,7 +18,7 @@ public class Chip8Wrapper : Game
    
     private Chip8 chip8;
 
-    private int scale = 24; // TODO: make adjustable
+    private int scale = 4; // TODO: make adjustable
     private int offset;
 
     private Color BackgroundColor = Color.Black; // TODO: make adjustable
@@ -51,7 +51,7 @@ public class Chip8Wrapper : Game
         chip8 = new Chip8();
 
         //var file = "ibm logo.ch8";
-        var file = "Keypad Test [Hap, 2006].ch8";
+        //var file = "Keypad Test [Hap, 2006].ch8";
         //var file = "Delay Timer Test [Matthew Mikolay, 2010].ch8";
         //var file = "Brix [Andreas Gustafsson, 1990].ch8";
         //var file = "Pong (alt).ch8";
@@ -70,7 +70,21 @@ public class Chip8Wrapper : Game
         //var file = "Stars [Sergey Naydenov, 2010].ch8";
 
         //TODO: command args and a ui file selector!
-        file = "c:\\dev\\chipate\\roms\\" + file;
+        //file = "c:\\dev\\chipate\\roms\\" + file;
+
+        //var file = "1-chip8-logo.ch8";
+        //var file = "2-ibm-logo.ch8";
+        //var file = "3-corax+.ch8";
+        //var file = "4-flags.ch8";
+        //var file = "5-quirks.ch8";
+        //var file = "6-keypad.ch8";
+        //var file = "7-beep.ch8";
+        //var file = "8-scrolling.ch8"; - xo/super only
+
+        var file = "oob_test_7.ch8";
+
+        file = "c:\\dev\\chipate\\roms\\testsuite\\" + file;
+
         if (!chip8.LoadRom(file))
         {
             throw new System.Exception($"Failed to load ROM {file}");
@@ -116,6 +130,7 @@ public class Chip8Wrapper : Game
         _cpuAccumulator += elapsedSeconds * CpuHz;
 
         // check keys (just once per frame!)
+        chip8.SaveKeypad();
         HandleKeypad(chip8.Keypad);
 
         // now execute as many opcodes as need to fit in a frame
@@ -125,6 +140,8 @@ public class Chip8Wrapper : Game
             chip8.Decode();
             chip8.Execute();
             _cpuAccumulator -= 1.0;
+            // this is the 'Display Wait' quirk - if we've performed a draw, that's it for this frame, no more opcodes.
+            if (chip8.DidDXYN) break;
         }
 
         // timers tick at 60 Hz (exactly once per frame)

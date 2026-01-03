@@ -57,11 +57,14 @@ public class Chip8
     private byte[] screen = new byte[DISPLAY_WIDTH * DISPLAY_HEIGHT];
     public byte[] Screen { get { return screen; } }
 
+    public bool DidDXYN {  get {  return instruction.firstNibble == 0xD; } }
+
     private ushort pc; // Program Counter
     private ushort sp; // Stack Pointer
     private ushort i;  // Index Register
 
     private bool[] keypad = new bool[16];
+    private bool[] prevKeypad = new bool[16];
     public bool[] Keypad { get { return keypad; } }
 
     private byte timerDelay;
@@ -203,6 +206,12 @@ public class Chip8
                 i = instruction.nnn;
                 break;
 
+            case 0xB:
+                // Bnnn - JP V0, addr
+                // Jump to location nnn + V0.
+                // The program counter is set to nnn plus the value of V0.
+                pc = (ushort)(instruction.nnn + registers[0]);
+                break;
             case 0xC:
                 // Cxkk - RND Vx, byte
                 // Set Vx = random byte AND kk.
@@ -235,78 +244,108 @@ public class Chip8
         switch (instruction.n)
         {
             case 0x0:
-                // 8xy0 - LD Vx, Vy
-                // Set Vx = Vy.
-                // Stores the value of register Vy in register Vx.
-                registers[instruction.x] = registers[instruction.y];
-                break;
+                {
+                    // 8xy0 - LD Vx, Vy
+                    // Set Vx = Vy.
+                    // Stores the value of register Vy in register Vx.
+                    registers[instruction.x] = registers[instruction.y];
+                    break;
+                }
             case 0x1:
-                // 8xy1 - OR Vx, Vy
-                // Set Vx = Vx OR Vy.
-                // Performs a bitwise OR on the values of Vx and Vy, then stores the result in Vx.
-                registers[instruction.x] |= registers[instruction.y];
-                break;
+                {
+                    // 8xy1 - OR Vx, Vy
+                    // Set Vx = Vx OR Vy.
+                    // Performs a bitwise OR on the values of Vx and Vy, then stores the result in Vx.
+                    registers[instruction.x] |= registers[instruction.y];
+                    registers[0xF] = 0; // According to some implementations, VF is set to 0 for this opcode
+                    break;
+                }
             case 0x2:
-                // 8xy2 - AND Vx, Vy
-                // Set Vx = Vx AND Vy.
-                // Performs a bitwise AND on the values of Vx and Vy, then stores the result in Vx.
-                registers[instruction.x] &= registers[instruction.y];
-                break;
+                {
+                    // 8xy2 - AND Vx, Vy
+                    // Set Vx = Vx AND Vy.
+                    // Performs a bitwise AND on the values of Vx and Vy, then stores the result in Vx.
+                    registers[instruction.x] &= registers[instruction.y];
+                    registers[0xF] = 0; // According to some implementations, VF is set to 0 for this opcode
+                    break;
+                }
             case 0x3:
-                // 8xy3 - XOR Vx, Vy
-                // Set Vx = Vx XOR Vy.
-                // Performs a bitwise exclusive OR on the values of Vx and Vy, then stores the result in Vx.
-                registers[instruction.x] ^= registers[instruction.y];
-                break;
-
+                {
+                    // 8xy3 - XOR Vx, Vy
+                    // Set Vx = Vx XOR Vy.
+                    // Performs a bitwise exclusive OR on the values of Vx and Vy, then stores the result in Vx.
+                    registers[instruction.x] ^= registers[instruction.y];
+                    registers[0xF] = 0; // According to some implementations, VF is set to 0 for this opcode
+                    break;
+                }
             case 0x4:
-                // 8xy4 - ADD Vx, Vy
-                // Set Vx = Vx + Vy, set VF = carry.
-                // The values of Vx and Vy are added together. If the result is greater than 8 bits (i.e., > 255), VF is set to 1, otherwise 0. Only the lowest 8 bits of the result are kept, and stored in Vx.
-                int sum = registers[instruction.x] + registers[instruction.y];
-                registers[0xF] = (byte)(sum > 255 ? 1 : 0);
-                registers[instruction.x] = (byte)(sum & 0xFF);
-                break;
-
+                {
+                    // 8xy4 - ADD Vx, Vy
+                    // Set Vx = Vx + Vy, set VF = carry.
+                    // The values of Vx and Vy are added together.
+                    // If the result is greater than 8 bits (i.e., > 255), VF is set to 1, otherwise 0.
+                    // Only the lowest 8 bits of the result are kept, and stored in Vx.
+                    int sum = registers[instruction.x] + registers[instruction.y];
+                    int carry = (byte)(sum > 255 ? 1 : 0);
+                    registers[instruction.x] = (byte)(sum & 0xFF);
+                    registers[0xF] = (byte)carry;
+                    break;
+                }
             case 0x5:
-                // 8xy5 - SUB Vx, Vy
-                // Set Vx = Vx - Vy, set VF = NOT borrow.
-                // If Vx > Vy, then VF is set to 1, otherwise 0. Then Vy is subtracted from Vx, and the results stored in Vx.
-                registers[0xF] = (byte)(registers[instruction.x] > registers[instruction.y] ? 1 : 0);
-                registers[instruction.x] -= registers[instruction.y];
-                break;
-
+                {
+                    // 8xy5 - SUB Vx, Vy
+                    // Set Vx = Vx - Vy, set VF = NOT borrow.
+                    // If Vx > Vy, then VF is set to 1, otherwise 0. Then Vy is subtracted from Vx, and the results stored in Vx.               
+                    int sum = (byte)(registers[instruction.x] - registers[instruction.y]);
+                    int flag = (byte)(registers[instruction.x] >= registers[instruction.y] ? 1 : 0);
+                    registers[instruction.x] = (byte)sum;
+                    registers[0xF] = (byte)flag;
+                    break;
+                }
             case 0x6:
-                // 8xy6 - SHR Vx {, Vy}
-                // Set Vx = Vx SHR 1.
-                // If the least-significant bit of Vx is 1, then VF is set to 1, otherwise 0. Then Vx is divided by 2.
-                registers[0xF] = (byte)(registers[instruction.x] & 0x1);
-                registers[instruction.x] >>= 1;
-                break;
+                {
+                    // 8xy6 - SHR Vx {, Vy}
+                    // Set Vx = Vx SHR 1.
+                    // If the least-significant bit of Vx is 1, then VF is set to 1, otherwise 0. Then Vx is divided by 2.
 
+                    registers[instruction.x] = registers[instruction.y];    // CHIP-8 only behaviour!
+
+                    int flag = (byte)(registers[instruction.x] & 0x1);
+                    int sum = registers[instruction.x] >> 1;
+                    registers[instruction.x] = (byte)sum;
+                    registers[0xF] = (byte)flag;
+                    break;
+                }
             case 0x7:
-                // 8xy7 - SUBN Vx, Vy
-                // Set Vx = Vy - Vx, set VF = NOT borrow.
-                // If Vy > Vx, then VF is set to 1, otherwise 0. Then Vx is subtracted from Vy, and the results stored in Vx.
-                registers[0xF] = (byte)(registers[instruction.y] > registers[instruction.x] ? 1 : 0);
-                registers[instruction.x] = (byte)(registers[instruction.y] - registers[instruction.x]);
-                break;
-
+                {
+                    // 8xy7 - SUBN Vx, Vy
+                    // Set Vx = Vy - Vx, set VF = NOT borrow.
+                    // If Vy > Vx, then VF is set to 1, otherwise 0. Then Vx is subtracted from Vy, and the results stored in Vx.
+                    registers[instruction.x] = (byte)(registers[instruction.y] - registers[instruction.x]);
+                    registers[0xF] = (byte)(registers[instruction.y] >= registers[instruction.x] ? 1 : 0);
+                    break;
+                }
             case 0xE:
-                // 8xyE - SHL Vx {, Vy}
-                // Set Vx = Vx SHL 1.
-                // If the most - significant bit of Vx is 1, then VF is set to 1, otherwise to 0. Then Vx is multiplied by 2.
-                registers[0xF] = (byte)((registers[instruction.x] & 0x80) >> 7);
-                registers[instruction.x] <<= 1;
-                break;
+                {
+                    // 8xyE - SHL Vx {, Vy}
+                    // Set Vx = Vx SHL 1.
+                    // If the most - significant bit of Vx is 1, then VF is set to 1, otherwise to 0. Then Vx is multiplied by 2.
 
+                    registers[instruction.x] = registers[instruction.y];    // CHIP-8 only behaviour!
+
+                    int flag = (byte)((registers[instruction.x] & 0x80) >> 7);
+                    int sum = registers[instruction.x] << 1;
+                    registers[instruction.x] = (byte)sum;
+                    registers[0xF] = (byte)flag;
+                    break;
+                }
             // Additional cases for other 8xyN opcodes would go here
             default:
                 throw new NotImplementedException($"Opcode 8xy{instruction.n:X} not implemented.");
         }
     }
 
-    private void HandleOpcodeD()
+    private void prevHandleOpcodeD()
     {
         // Dxyn - DRW Vx, Vy, nibble
         // Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
@@ -341,6 +380,45 @@ public class Chip8
         }
     }
 
+    private void HandleOpcodeD()
+    {
+        byte vx = registers[instruction.x];
+        byte vy = registers[instruction.y];
+        int height = instruction.n;
+
+        registers[0xF] = 0;
+
+        // Wrap the START coordinate only
+        int startX = vx % DISPLAY_WIDTH;     // 64
+        int startY = vy % DISPLAY_HEIGHT;    // 32
+
+        for (int row = 0; row < height; row++)
+        {
+            int yCoord = startY + row;
+            if (yCoord >= DISPLAY_HEIGHT)
+                break; // clip bottom: no more rows visible
+
+            byte spriteByte = memory[i + row];
+
+            for (int col = 0; col < 8; col++)
+            {
+                int xCoord = startX + col;
+                if (xCoord >= DISPLAY_WIDTH)
+                    break; // clip right: remaining cols also off-screen
+
+                if ((spriteByte & (0x80 >> col)) == 0)
+                    continue;
+
+                int pixelIndex = xCoord + (yCoord * DISPLAY_WIDTH);
+
+                if (screen[pixelIndex] == 1)
+                    registers[0xF] = 1;
+
+                screen[pixelIndex] ^= 1; // XOR: toggles 0<->1
+            }
+        }
+    }
+
     private void HandleOpcodeE()
     {
         if (instruction.kk == 0x9E)
@@ -349,7 +427,8 @@ public class Chip8
             // Skip next instruction if key with the value of Vx is pressed.
             // Checks the keyboard, and if the key corresponding to the value of Vx is
             // currently in the down position, PC is increased by 2.
-            if (keypad[registers[instruction.x]] == true)
+            byte keyIndex = (byte)(registers[instruction.x] & 0xF);
+            if (keypad[keyIndex] == true)
             {
                 pc += 2;
             }
@@ -360,7 +439,9 @@ public class Chip8
             // Skip next instruction if key with the value of Vx is not pressed.
             // Checks the keyboard, and if the key corresponding to the value of Vx is
             // currently in the up position, PC is increased by 2.
-            if (keypad[registers[instruction.x]] == false)
+            byte keyIndex = (byte)(registers[instruction.x] & 0xF);
+
+            if (keypad[keyIndex] == false)
             {
                 pc += 2;
             }
@@ -383,8 +464,23 @@ public class Chip8
         else if (instruction.kk == 0x0A)
         {
             // Fx0A - LD Vx, K
-            // Wait for a key press, store the value of the key in Vx.
-            // All execution stops until a key is pressed, then the value of that key is stored in Vx.
+            // Wait for a key to be pressed and the released, store the value of the key in Vx.
+            // All execution stops until a key is pressed and released, then the value of that key is stored in Vx.
+            bool keyHandled = false;
+            for (int key = 0; key < keypad.Length; key++)
+            {
+                if (prevKeypad[key] == true && keypad[key] == false)
+                {
+                    registers[instruction.x] = (byte)key;
+                    keyHandled = true;
+                    break;
+                }
+            }
+            if (!keyHandled)
+            {
+                pc -= 2; // effectively repeat this instruction
+            }
+            /*
             bool keyPressed = false;
             for (int key = 0; key < keypad.Length; key++)
             {
@@ -399,6 +495,7 @@ public class Chip8
             {
                 pc -= 2; // effectively repeat this instruction
             }
+            */
         }
         else if (instruction.kk == 0x15)
         {
@@ -447,10 +544,13 @@ public class Chip8
             // Store registers V0 through Vx in memory starting at location I.
             // The interpreter copies the values of registers V0 through Vx into memory,
             // starting at the address in I.
+            int iOffset = 0;
             for (int regIndex = 0; regIndex <= instruction.x; regIndex++)
             {
                 memory[i + regIndex] = registers[regIndex];
+                iOffset++;
             }
+            i += (ushort)iOffset;
         }
         else if (instruction.kk == 0x65)
         {
@@ -458,10 +558,13 @@ public class Chip8
             // Read registers V0 through Vx from memory starting at location I.
             // The interpreter reads values from memory starting at location I into
             // registers V0 through Vx.
+            int iOffset = 0;
             for (int regIndex = 0; regIndex <= instruction.x; regIndex++)
             {
                 registers[regIndex] = memory[i + regIndex];
+                iOffset++;
             }
+            i += (ushort)iOffset;
         }
         else
         {
@@ -491,6 +594,10 @@ public class Chip8
         }
     }
 
+    public void SaveKeypad()
+    {
+       Array.Copy(keypad, prevKeypad, keypad.Length);
+    }
 
     public void SoftReset()
     {
@@ -503,6 +610,7 @@ public class Chip8
         stack = new ushort[16];
         screen = new byte[DisplayWidth * DisplayHeight];
         keypad = new bool[16];
+        prevKeypad = new bool[16];
 
         i = 0;
         pc = START_ADDRESS;
