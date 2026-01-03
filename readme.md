@@ -4,16 +4,16 @@
 
 ### a first-pass at a Chip-8 emulated 'virtual' computer system in C# and MonoGame
 
-## Documentation references  
-https://en.wikipedia.org/wiki/CHIP-8  
-http://devernay.free.fr/hacks/chip8/C8TECH10.HTM  
-https://github.com/Timendus/chip8-test-suite?tab=readme-ov-file for tests  
-(but note this errata - https://github.com/gulrak/cadmium/wiki/CTR-Errata )  
-https://www.laurencescotford.net/2020/07/25/chip-8-on-the-cosmac-vip-index/   
-https://tobiasvl.github.io/blog/write-a-chip-8-emulator/   
-https://chip8.gulrak.net/   
+There are a bunch of test roms (and sample roms) in the repo, but you'll have to edit the Chip8Wrapper file (it's obvious where).  
+The keypad is currently hardcoded as  
+```
+1  2  3  4
+Q  W  E  R
+A  S  D  F
+Z  X  C  V
+```
 
-passes all of the standard 'tests' now, fails on the 'oob' out of bounds test rom.  
+The emulator passes all of the standard 'tests' now, but it fails on the 'oob' out of bounds test rom.  
 
 
 ## todo:
@@ -26,4 +26,13 @@ passes all of the standard 'tests' now, fails on the 'oob' out of bounds test ro
 - optimize rendering (presently redraws whole screen every frame)
 - command line arguments (rom path, scale, bg/fg colors, etc)
 
+
+## Documentation references  
+https://en.wikipedia.org/wiki/CHIP-8  
+http://devernay.free.fr/hacks/chip8/C8TECH10.HTM  
+https://github.com/Timendus/chip8-test-suite?tab=readme-ov-file for tests  
+(but note this errata - https://github.com/gulrak/cadmium/wiki/CTR-Errata )  
+https://www.laurencescotford.net/2020/07/25/chip-8-on-the-cosmac-vip-index/   
+https://tobiasvl.github.io/blog/write-a-chip-8-emulator/   
+https://chip8.gulrak.net/   
 
