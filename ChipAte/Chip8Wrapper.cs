@@ -79,9 +79,9 @@ public class Chip8Wrapper : Game
         //var file = "5-quirks.ch8";
         //var file = "6-keypad.ch8";
         //var file = "7-beep.ch8";
-        //var file = "8-scrolling.ch8"; - xo/super only
+        //var file = "8-scrolling.ch8"; - xo/super only, ignore for Chip-8 only
 
-        var file = "oob_test_7.ch8";
+        var file = "oob_test_7.ch8"; // the oob - out of bounds - rom test - brutal!
 
         file = "c:\\dev\\chipate\\roms\\testsuite\\" + file;
 
@@ -140,7 +140,8 @@ public class Chip8Wrapper : Game
             chip8.Decode();
             chip8.Execute();
             _cpuAccumulator -= 1.0;
-            // this is the 'Display Wait' quirk - if we've performed a draw, that's it for this frame, no more opcodes.
+
+            // this is the 'Display Wait' quirk - if we've just performed a draw, that's it for this frame, no more opcodes.
             if (chip8.DidDXYN) break;
         }
 

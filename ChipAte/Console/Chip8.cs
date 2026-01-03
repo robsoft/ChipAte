@@ -18,7 +18,15 @@ public class Chip8
 {
     // documentation reference: https://en.wikipedia.org/wiki/CHIP-8#Opcode_table
     // and http://devernay.free.fr/hacks/chip8/C8TECH10.HTM
+    // and then https://github.com/Timendus/chip8-test-suite?tab=readme-ov-file for tests
+    // but note this errata - https://github.com/gulrak/cadmium/wiki/CTR-Errata 
+    // and https://www.laurencescotford.net/2020/07/25/chip-8-on-the-cosmac-vip-index/ 
+    // and https://tobiasvl.github.io/blog/write-a-chip-8-emulator/ 
+    // and https://chip8.gulrak.net/ 
 
+
+    // TODO: change Memory, Registers, Keypad so that we access them through methods which can protect
+    // against OOB, rather than just throwing arrays around everywhere.
     private const int MEMORY_SIZE = 4096;
     private byte[] memory;
     private const int START_ADDRESS = 0x200;
@@ -345,41 +353,6 @@ public class Chip8
         }
     }
 
-    private void prevHandleOpcodeD()
-    {
-        // Dxyn - DRW Vx, Vy, nibble
-        // Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
-        // The interpreter reads n bytes from memory, starting at the address stored in I.
-        // These bytes are then displayed as sprites on screen at coordinates (Vx, Vy).
-        // Sprites are XORed onto the existing screen.
-        // If this causes any pixels to be erased, VF is set to 1, otherwise it is set to 0.
-        // If the sprite is positioned so part of it is outside the coordinates of the display,
-        // it wraps around to the opposite side of the screen.
-        byte vx = registers[instruction.x];
-        byte vy = registers[instruction.y];
-        byte height = (byte)instruction.n;
-        registers[0xF] = 0;
-
-        for (int row = 0; row < height; row++)
-        {
-            byte spriteByte = memory[i + row];
-            for (int col = 0; col < 8; col++)
-            {
-                if ((spriteByte & (0x80 >> col)) != 0)
-                {
-                    int xCoord = (vx + col) % DISPLAY_WIDTH;
-                    int yCoord = (vy + row) % DISPLAY_HEIGHT;
-                    int pixelIndex = xCoord + (yCoord * DISPLAY_WIDTH);
-                    if (screen[pixelIndex] == 1)
-                    {
-                        registers[0xF] = 1;
-                    }
-                    screen[pixelIndex] ^= 1;
-                }
-            }
-        }
-    }
-
     private void HandleOpcodeD()
     {
         byte vx = registers[instruction.x];
@@ -480,22 +453,6 @@ public class Chip8
             {
                 pc -= 2; // effectively repeat this instruction
             }
-            /*
-            bool keyPressed = false;
-            for (int key = 0; key < keypad.Length; key++)
-            {
-                if (keypad[key] == true)
-                {
-                    registers[instruction.x] = (byte)key;
-                    keyPressed = true;
-                    break;
-                }
-            }
-            if (!keyPressed)
-            {
-                pc -= 2; // effectively repeat this instruction
-            }
-            */
         }
         else if (instruction.kk == 0x15)
         {
@@ -594,10 +551,13 @@ public class Chip8
         }
     }
 
+    // it seems we need to be able to detect a change in keystate from one frame to another, so
+    // we just have an internal copy of the previous keypad state
     public void SaveKeypad()
     {
        Array.Copy(keypad, prevKeypad, keypad.Length);
     }
+
 
     public void SoftReset()
     {
