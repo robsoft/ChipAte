@@ -18,7 +18,7 @@ public class Chip8Wrapper : Game
    
     private Chip8 chip8;
 
-    private int scale = 4; // TODO: make adjustable
+    private int scale = 16; // TODO: make adjustable
     private int offset;
 
     private Color BackgroundColor = Color.Black; // TODO: make adjustable
@@ -50,10 +50,11 @@ public class Chip8Wrapper : Game
 
         chip8 = new Chip8();
 
+        // SAMPLE ROMS
         //var file = "ibm logo.ch8";
         //var file = "Keypad Test [Hap, 2006].ch8";
         //var file = "Delay Timer Test [Matthew Mikolay, 2010].ch8";
-        //var file = "Brix [Andreas Gustafsson, 1990].ch8";
+        var file = "Brix [Andreas Gustafsson, 1990].ch8";
         //var file = "Pong (alt).ch8";
         //var file = "Random Number Test [Matthew Mikolay, 2010].ch8";
         //var file = "Breakout [Carmelo Cortez, 1979].ch8";
@@ -68,10 +69,9 @@ public class Chip8Wrapper : Game
         //var file = "Maze [David Winter, 199x].ch8";
         //var file = "Sierpinski [Sergey Naydenov, 2010].ch8";
         //var file = "Stars [Sergey Naydenov, 2010].ch8";
+        file = "c:\\dev\\chipate\\roms\\" + file;
 
-        //TODO: command args and a ui file selector!
-        //file = "c:\\dev\\chipate\\roms\\" + file;
-
+        // TEST SUITE ROMS
         //var file = "1-chip8-logo.ch8";
         //var file = "2-ibm-logo.ch8";
         //var file = "3-corax+.ch8";
@@ -80,10 +80,11 @@ public class Chip8Wrapper : Game
         //var file = "6-keypad.ch8";
         //var file = "7-beep.ch8";
         //var file = "8-scrolling.ch8"; - xo/super only, ignore for Chip-8 only
+        //var file = "oob_test_7.ch8"; // the oob - out of bounds - rom test - brutal!
+        //file = "c:\\dev\\chipate\\roms\\testsuite\\" + file;
 
-        var file = "oob_test_7.ch8"; // the oob - out of bounds - rom test - brutal!
 
-        file = "c:\\dev\\chipate\\roms\\testsuite\\" + file;
+        //TODO: command args and a ui file selector!
 
         if (!chip8.LoadRom(file))
         {
