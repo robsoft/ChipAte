@@ -3,19 +3,41 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Gum.DataTypes;
+using Gum.Managers;
+using Gum.Wireframe;
+
+using MonoGameGum;
+using Gum.Forms.Controls;
+using MonoGameGum.GueDeriving;
+
 using System;
 
 namespace ChipAte;
 
-public class Chip8Wrapper : Game
+public partial class Chip8Wrapper : Game
 {
+    private enum Scene {
+        None,
+        Game,
+        Main,
+        Options,
+        FileSelect
+    };
+
     private GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch;
     private Texture2D _pixelTex;
     private SoundEffect _beepEffect;
     private SoundEffectInstance _beepInstance;
     private Rectangle _playfieldRect;
-   
+
+    GumService Gum => GumService.Default;
+    StackPanel mainPanel;
+    StackPanel optionsPanel;
+    StackPanel fileSelectPanel;
+    private Scene scene = Scene.None;
+
     private Chip8 chip8;
 
     private int scale = 16; // TODO: make adjustable
@@ -82,23 +104,15 @@ public class Chip8Wrapper : Game
         //var file = "8-scrolling.ch8"; - xo/super only, ignore for Chip-8 only
         //var file = "oob_test_7.ch8"; // the oob - out of bounds - rom test - brutal!
         //file = "c:\\dev\\chipate\\roms\\testsuite\\" + file;
-
-
-        //TODO: command args and a ui file selector!
-
-        if (!chip8.LoadRom(file))
-        {
-            throw new System.Exception($"Failed to load ROM {file}");
-        }
-
     }
 
     protected override void Initialize()
     {
-        base.Initialize();
+        // prepare beep sound
+        CreateBeepSound();
+
         int borderPixels = 1; // in CHIP-8 pixels
         offset = borderPixels * scale;
-
         _playfieldRect = new Rectangle(
             offset,
             offset,
@@ -108,6 +122,43 @@ public class Chip8Wrapper : Game
         _graphics.PreferredBackBufferWidth = (chip8.DisplayWidth + borderPixels * 2) * scale;
         _graphics.PreferredBackBufferHeight = (chip8.DisplayHeight + borderPixels * 2) * scale;
         _graphics.ApplyChanges();
+
+        Gum.Initialize(this);
+
+        SetupMainPanel();
+        SetupOptionsPanel();
+        SetupFileSelectPanel();
+
+        SetScene(Scene.Main);
+
+        base.Initialize();
+    }
+
+    private void SetScene(Scene newScene)
+    {
+        if (scene == newScene)
+            return;
+        StopBeep();
+
+        Gum.Root.Children.Clear();
+        scene = newScene;
+        switch (scene)
+        {
+            case Scene.Main:
+                mainPanel.Visual.AddToRoot();
+                //Gum.Root.AddChild(mainPanel);
+                break;
+            case Scene.Options:
+                //Gum.Root.AddChild(optionsPanel);
+                optionsPanel.Visual.AddToRoot();
+                break;
+            case Scene.FileSelect:
+                fileSelectPanel.Visual.AddToRoot();
+                //Gum.Root.AddChild(fileSelectPanel);
+                break;
+            case Scene.Game:
+                break;
+        }
     }
 
     protected override void LoadContent()
@@ -117,13 +168,49 @@ public class Chip8Wrapper : Game
         // setup our pixel texture
         _pixelTex = new Texture2D(GraphicsDevice, 1, 1);
         _pixelTex.SetData(new[] { PixelColor });
-
-        // prepare beep sound
-        CreateBeepSound();
     }
 
     protected override void Update(GameTime gameTime)
     {
+
+        if (scene == Scene.Game)
+        {
+            HandleGameUpdate(gameTime);
+        }
+        else
+        {
+            HandlePanelUpdate(gameTime);
+        }
+
+        base.Update(gameTime);
+    }
+
+    private void HandlePanelUpdate(GameTime gameTime)
+    {
+        Gum.Update(gameTime);
+    }
+
+    private void HandleGameUpdate(GameTime gameTime)
+    {
+
+        if (Keyboard.GetState().IsKeyDown(Keys.Escape))
+        {
+            SetScene(Scene.Main);
+            HandlePanelUpdate(gameTime);
+            return;
+        }
+
+        if (Keyboard.GetState().IsKeyDown(Keys.F8))
+        {
+            if (chip8.ROMLoaded)
+            {
+                chip8.LoadRom(chip8.ROMPath);
+                // will handle reset, we can't just reset PC as Chip-8 code can be self-modifying etc
+                return;
+            }
+        }
+
+
         // how much real time has passed since last frame
         double elapsedSeconds = gameTime.ElapsedGameTime.TotalSeconds;
 
@@ -163,14 +250,30 @@ public class Chip8Wrapper : Game
             StopBeep();
         }
 
+    }
 
-        base.Update(gameTime);
+
+    private void HandlePanelDraw(GameTime gameTime)
+    {
+        Gum.Draw();
     }
 
     protected override void Draw(GameTime gameTime)
     {
         GraphicsDevice.Clear(BorderColor);
 
+        if (scene == Scene.Game)
+        {
+            HandleGameDraw(gameTime);
+        }
+        else
+        { 
+            HandlePanelDraw(gameTime);
+        }
+        base.Draw(gameTime);
+    }
+    private void HandleGameDraw(GameTime gameTime)
+    { 
         _spriteBatch.Begin(samplerState: SamplerState.PointClamp);
         // PointClamp avoids smoothing if we ever scale textures.
         _spriteBatch.Draw(_pixelTex, _playfieldRect, BackgroundColor);
@@ -251,6 +354,8 @@ public class Chip8Wrapper : Game
         keypad[0xE] = state.IsKeyDown(Keys.F);
         keypad[0xF] = state.IsKeyDown(Keys.V);
     }
+
+
 
     // start the beep sound effect, if necessary
     private void StartBeep()

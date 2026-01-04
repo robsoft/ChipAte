@@ -65,6 +65,13 @@ public class Chip8
     private byte[] screen = new byte[DISPLAY_WIDTH * DISPLAY_HEIGHT];
     public byte[] Screen { get { return screen; } }
 
+    private bool romLoaded = false;
+    public bool ROMLoaded { get { return romLoaded; } }
+    
+    private string romPath = string.Empty;
+    public string ROMPath { get { return romPath; } }
+
+    
     public bool DidDXYN {  get {  return instruction.firstNibble == 0xD; } }
 
     private ushort pc; // Program Counter
@@ -543,10 +550,14 @@ public class Chip8
 
             SoftReset();
             Array.Copy(romData, 0, memory, START_ADDRESS, romData.Length);
+            romLoaded = true;
+            romPath = FilePath;
             return true;
         }
         catch (Exception)
         {
+            romLoaded = false;
+            romPath = string.Empty;
             return false; // Failed to read file
         }
     }
