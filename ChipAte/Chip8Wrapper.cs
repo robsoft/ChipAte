@@ -12,6 +12,7 @@ using Gum.Forms.Controls;
 using MonoGameGum.GueDeriving;
 
 using System;
+using System.Diagnostics;
 
 namespace ChipAte;
 
@@ -39,6 +40,7 @@ public partial class Chip8Wrapper : Game
     private Scene scene = Scene.None;
 
     private Chip8 chip8;
+    private Chip8Debugger debugger;
 
     private int scale = 16; // TODO: make adjustable
     private int offset;
@@ -71,6 +73,7 @@ public partial class Chip8Wrapper : Game
         _graphics.ApplyChanges();
 
         chip8 = new Chip8();
+        debugger = new Chip8Debugger(chip8);
 
         // SAMPLE ROMS
         //var file = "ibm logo.ch8";
@@ -146,15 +149,12 @@ public partial class Chip8Wrapper : Game
         {
             case Scene.Main:
                 mainPanel.Visual.AddToRoot();
-                //Gum.Root.AddChild(mainPanel);
                 break;
             case Scene.Options:
-                //Gum.Root.AddChild(optionsPanel);
                 optionsPanel.Visual.AddToRoot();
                 break;
             case Scene.FileSelect:
                 fileSelectPanel.Visual.AddToRoot();
-                //Gum.Root.AddChild(fileSelectPanel);
                 break;
             case Scene.Game:
                 break;
@@ -193,6 +193,10 @@ public partial class Chip8Wrapper : Game
     private void HandleGameUpdate(GameTime gameTime)
     {
 
+        // UI/Wrapper controller Update code
+
+        //TODO: need to debounce these keys I think
+
         if (Keyboard.GetState().IsKeyDown(Keys.Escape))
         {
             SetScene(Scene.Main);
@@ -210,6 +214,14 @@ public partial class Chip8Wrapper : Game
             }
         }
 
+        if (Keyboard.GetState().IsKeyDown(Keys.F12))
+        {
+            debugger.Enabled = !debugger.Enabled;
+        }
+
+
+
+        // actual CHIP-8 related Update code
 
         // how much real time has passed since last frame
         double elapsedSeconds = gameTime.ElapsedGameTime.TotalSeconds;
@@ -217,7 +229,7 @@ public partial class Chip8Wrapper : Game
         // accumulate the CPU time
         _cpuAccumulator += elapsedSeconds * CpuHz;
 
-        // check keys (just once per frame!)
+        // check Chip-8 keys (just once per frame!)
         chip8.SaveKeypad();
         HandleKeypad(chip8.Keypad);
 
@@ -231,6 +243,7 @@ public partial class Chip8Wrapper : Game
 
             // this is the 'Display Wait' quirk - if we've just performed a draw, that's it for this frame, no more opcodes.
             if (chip8.DidDXYN) break;
+            if (debugger.Enabled && debugger.SingleStepping) break;
         }
 
         // timers tick at 60 Hz (exactly once per frame)
@@ -272,6 +285,7 @@ public partial class Chip8Wrapper : Game
         }
         base.Draw(gameTime);
     }
+
     private void HandleGameDraw(GameTime gameTime)
     { 
         _spriteBatch.Begin(samplerState: SamplerState.PointClamp);
@@ -354,7 +368,6 @@ public partial class Chip8Wrapper : Game
         keypad[0xE] = state.IsKeyDown(Keys.F);
         keypad[0xF] = state.IsKeyDown(Keys.V);
     }
-
 
 
     // start the beep sound effect, if necessary
