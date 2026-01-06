@@ -10,9 +10,11 @@ using Gum.Wireframe;
 using MonoGameGum;
 using Gum.Forms.Controls;
 using MonoGameGum.GueDeriving;
+using Gum.Forms.DefaultVisuals.V3;
 
 using System;
 using System.Diagnostics;
+using Gum.Forms;
 
 namespace ChipAte;
 
@@ -33,7 +35,7 @@ public partial class Chip8Wrapper : Game
     private SoundEffectInstance _beepInstance;
     private Rectangle _playfieldRect;
 
-    GumService Gum => GumService.Default;
+    GumService GumUI => GumService.Default;
     StackPanel mainPanel;
     StackPanel optionsPanel;
     StackPanel fileSelectPanel;
@@ -41,6 +43,8 @@ public partial class Chip8Wrapper : Game
 
     private Chip8 chip8;
     private Chip8Debugger debugger;
+    private FileSelectViewModel fileSelectViewModel;
+    private OptionsViewModel optionsViewModel;
 
     private int scale = 16; // TODO: make adjustable
     private int offset;
@@ -74,6 +78,8 @@ public partial class Chip8Wrapper : Game
 
         chip8 = new Chip8();
         debugger = new Chip8Debugger(chip8);
+        optionsViewModel = new OptionsViewModel();
+        fileSelectViewModel = new FileSelectViewModel();
 
         // SAMPLE ROMS
         //var file = "ibm logo.ch8";
@@ -126,11 +132,11 @@ public partial class Chip8Wrapper : Game
         _graphics.PreferredBackBufferHeight = (chip8.DisplayHeight + borderPixels * 2) * scale;
         _graphics.ApplyChanges();
 
-        Gum.Initialize(this);
+        GumUI.Initialize(this, DefaultVisualsVersion.V3);
 
         SetupMainPanel();
-        SetupOptionsPanel();
-        SetupFileSelectPanel();
+        SetupOptionsPanel(optionsViewModel);
+        SetupFileSelectPanel(fileSelectViewModel);
 
         SetScene(Scene.Main);
 
@@ -143,7 +149,7 @@ public partial class Chip8Wrapper : Game
             return;
         StopBeep();
 
-        Gum.Root.Children.Clear();
+        GumUI.Root.Children.Clear();
         scene = newScene;
         switch (scene)
         {
@@ -187,7 +193,7 @@ public partial class Chip8Wrapper : Game
 
     private void HandlePanelUpdate(GameTime gameTime)
     {
-        Gum.Update(gameTime);
+        GumUI.Update(gameTime);
     }
 
     private void HandleGameUpdate(GameTime gameTime)
@@ -268,7 +274,7 @@ public partial class Chip8Wrapper : Game
 
     private void HandlePanelDraw(GameTime gameTime)
     {
-        Gum.Draw();
+        GumUI.Draw();
     }
 
     protected override void Draw(GameTime gameTime)

@@ -1,16 +1,16 @@
 ﻿using ChipAte.Console;
+using Gum.Forms;
+using Gum.Forms.Controls;
+using Gum.Forms.DefaultVisuals.V3;
+using Gum.Mvvm;
+using Gum.Wireframe;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using Gum.DataTypes;
-using Gum.Managers;
-using Gum.Wireframe;
-
+using MonoGame.Framework.Utilities;
 using MonoGameGum;
-using Gum.Forms.Controls;
 using MonoGameGum.GueDeriving;
-
 using System;
 
 namespace ChipAte;
@@ -20,7 +20,7 @@ public partial class Chip8Wrapper
     private void QuitButton_Click(object sender, System.EventArgs e)
     {
         StopBeep();
-        Gum.Root.Children.Clear();
+        GumUI.Root.Children.Clear();
         Exit();
     }
 
@@ -49,8 +49,11 @@ public partial class Chip8Wrapper
         }
         SetScene(Scene.Game);
     }
+    private void NoEvent_Click(object sender, System.EventArgs e)
+    {
+    }
 
-    private void SetupOptionsPanel()
+    private void SetupOptionsPanel(OptionsViewModel optionsViewModel)
     {
         optionsPanel = new StackPanel();
 
@@ -71,24 +74,97 @@ public partial class Chip8Wrapper
 
     }
 
-    private void SetupFileSelectPanel()
+    void HandleItemClicked(object? sender, EventArgs args)
+    {
+        if (GumService.Default.Cursor.PrimaryDoubleClick)
+        {
+            // it was a double-click
+            if (fileSelectViewModel != null)
+            {
+                if (sender is BrowseFileListBoxItem listitem)
+                {
+                    if (fileSelectViewModel.ConfirmFile((BrowserEntry)listitem.BindingContext))
+                    {
+                        if (chip8.LoadRom(fileSelectViewModel.SelectedFilePath))
+                        {
+                            SetScene(Scene.Game);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void SetupFileSelectPanel(FileSelectViewModel fileSelectViewModel)
     {
         fileSelectPanel = new StackPanel();
+        fileSelectPanel.BindingContext = fileSelectViewModel;
 
-        fileSelectPanel.Spacing = 3;
+        fileSelectPanel.Visual.StackSpacing = 3;
         fileSelectPanel.Anchor(Anchor.Center);
+        fileSelectPanel.Visual.ChildrenLayout = Gum.Managers.ChildrenLayout.TopToBottomStack;
 
         var titleLabel = new Label();
         titleLabel.Text = "Select ROM file";
         titleLabel.Anchor(Anchor.Top);
         fileSelectPanel.AddChild(titleLabel);
 
+        var testLabel = new Label();
+        testLabel.Anchor(Anchor.Top);
+        testLabel.SetBinding(nameof(testLabel.Text), nameof(fileSelectViewModel.SelectedFilePath));
+        fileSelectPanel.AddChild(testLabel);
+
+        var drivesComboBox = new ComboBox();
+        drivesComboBox.Visual.Width = 400;
+        drivesComboBox.Anchor(Anchor.Top);
+        fileSelectPanel.AddChild(drivesComboBox);
+
+        var filesListBox = new ListBox();
+        filesListBox.Visual.Width = 400;
+        filesListBox.Anchor(Anchor.Top);
+        filesListBox.ItemClicked += HandleItemClicked;
+        fileSelectPanel.AddChild(filesListBox);
+
+        var buttonsPanel = new StackPanel();
+        buttonsPanel.Orientation = Orientation.Horizontal;
+        buttonsPanel.Visual.ChildrenLayout = Gum.Managers.ChildrenLayout.LeftToRightStack;
+        buttonsPanel.Spacing = 2;
+        buttonsPanel.Anchor(Anchor.Top);
+
+        var okButton = new Button();
+        okButton.Text = "Select";
+        okButton.Visual.Width = 150;
+        okButton.Click += (s, e) =>
+        {
+            if (fileSelectViewModel.ConfirmFile(fileSelectViewModel.SelectedBrowserEntry))
+            {
+                if (chip8.LoadRom(fileSelectViewModel.SelectedFilePath))
+                {
+                    SetScene(Scene.Game);
+                }
+            }
+        };
+
         var returnButton = new Button();
         returnButton.Text = "Cancel";
-        returnButton.Visual.Width = 200;
+        returnButton.Visual.Width = 150;
         returnButton.Click += ReturnButton_Click;
-        returnButton.Anchor(Anchor.Top);
-        fileSelectPanel.AddChild(returnButton);
+
+        fileSelectPanel.AddChild(buttonsPanel);
+        buttonsPanel.AddChild(okButton);
+        buttonsPanel.AddChild(returnButton);
+
+        drivesComboBox.SetBinding(nameof(drivesComboBox.Items), nameof(fileSelectViewModel.AvailablePlaces));
+        drivesComboBox.SetBinding(nameof(drivesComboBox.SelectedObject), nameof(fileSelectViewModel.SelectedPlace));
+        drivesComboBox.FrameworkElementTemplate =
+            new Gum.Forms.FrameworkElementTemplate(typeof(PlaceDisplay));
+        drivesComboBox.DisplayMemberPath = nameof(PlaceItem.DisplayName);
+
+        filesListBox.SetBinding(nameof(filesListBox.Items), nameof(fileSelectViewModel.AvailableFiles));
+        // dont do this, we are going to bind this ourselves
+        // filesListBox.SetBinding(nameof(filesListBox.SelectedObject), nameof(fileSelectViewModel.SelectedBrowserEntry));
+        filesListBox.FrameworkElementTemplate =
+            new Gum.Forms.FrameworkElementTemplate(typeof(BrowseFileListBoxItem));
     }
 
     private void SetupMainPanel()
@@ -96,7 +172,8 @@ public partial class Chip8Wrapper
         mainPanel = new StackPanel();
         mainPanel.Visual.AddToRoot();
 
-        mainPanel.Spacing = 3;
+        mainPanel.Visual.ChildrenLayout = Gum.Managers.ChildrenLayout.TopToBottomStack;
+        mainPanel.Visual.StackSpacing = 3;
         mainPanel.Anchor(Anchor.Center);
 
         var titleLabel = new Label();
