@@ -1,4 +1,5 @@
-﻿using ChipAte.Console;
+﻿using Microsoft.Extensions.Logging;
+using ChipAte.Console;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
@@ -27,6 +28,7 @@ public partial class Chip8Wrapper : Game
         Options,
         FileSelect
     };
+    private readonly ILogger<Chip8Wrapper> _log;
 
     private GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch;
@@ -64,8 +66,10 @@ public partial class Chip8Wrapper : Game
     private double _cpuAccumulator = 0.0;
 
 
-    public Chip8Wrapper()
+    public Chip8Wrapper(ILogger<Chip8Wrapper> log)
     {
+        _log = log;
+        _log.LogInformation("Starting ChipAte...");
 
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
@@ -88,6 +92,11 @@ public partial class Chip8Wrapper : Game
         fileSelectViewModel = new FileSelectViewModel(options);
     }
 
+    protected override void OnExiting(object sender, ExitingEventArgs args)
+    {
+        _log.LogInformation("ChipAte exiting");
+        base.OnExiting(sender, args);
+    }
     protected override void Initialize()
     {
         // prepare beep sound
