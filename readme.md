@@ -2,7 +2,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Project Status: Alpha](https://img.shields.io/badge/Status-Alpha-red.svg)
 
-### a first-pass at a Chip-8 emulated 'virtual' computer system in C# and MonoGame
+### a first-pass at a Chip-8 emulated 'virtual' computer system (in C# and MonoGame)
 
 There are a bunch of test roms (and sample roms) in the repo, but you'll have to edit the Chip8Wrapper file (it's obvious where).  
 The keypad is currently hardcoded as  
@@ -16,15 +16,8 @@ Z  X  C  V
 The emulator passes all of the standard 'tests' now, but it fails on the 'oob' out of bounds test rom.  
 
 
-## todo:
-- sound on/off (presently fixed on)
-- debugging tools (memory viewer, step execution, breakpoints, etc)
-- save/load state
-- rom select ui
-- change background/foreground colors
-- change ui size  
-- optimize rendering (presently redraws whole screen every frame)
-- command line arguments (rom path, scale, bg/fg colors, etc)
+## todo:  
+(these items have been re-written as 'issues' in Guthub now)
 
 
 ## Documentation references  
