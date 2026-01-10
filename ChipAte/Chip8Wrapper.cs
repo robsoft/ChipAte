@@ -43,8 +43,10 @@ public partial class Chip8Wrapper : Game
 
     private Chip8 chip8;
     private Chip8Debugger debugger;
+    private Options options;
     private FileSelectViewModel fileSelectViewModel;
     private OptionsViewModel optionsViewModel;
+    private MainViewModel mainViewModel;
 
     private int scale = 16; // TODO: make adjustable
     private int offset;
@@ -57,7 +59,7 @@ public partial class Chip8Wrapper : Game
     private const int SampleRate = 44100;
     private const int BeepFrequency = 440; // A4 — classic, pleasant
 
-    private const int CpuHz = 700;   // reasonable default
+    private const int CpuHz = 700;   // reasonable default - do we want to make this an option?
     private const int TimerHz = 60;
     private double _cpuAccumulator = 0.0;
 
@@ -78,41 +80,12 @@ public partial class Chip8Wrapper : Game
 
         chip8 = new Chip8();
         debugger = new Chip8Debugger(chip8);
-        optionsViewModel = new OptionsViewModel();
-        fileSelectViewModel = new FileSelectViewModel();
+        //TODO: load this from disk (fallback to sensible defaults)
+        options = new Options();
 
-        // SAMPLE ROMS
-        //var file = "ibm logo.ch8";
-        //var file = "Keypad Test [Hap, 2006].ch8";
-        //var file = "Delay Timer Test [Matthew Mikolay, 2010].ch8";
-        var file = "Brix [Andreas Gustafsson, 1990].ch8";
-        //var file = "Pong (alt).ch8";
-        //var file = "Random Number Test [Matthew Mikolay, 2010].ch8";
-        //var file = "Breakout [Carmelo Cortez, 1979].ch8";
-        //var file = "Zero Demo [zeroZshadow, 2007].ch8";
-        //var file = "Trip8 Demo (2008) [Revival Studios].ch8";
-        //var file = "Tetris [Fran Dachille, 1991].ch8";
-        //var file = "Space Invaders [David Winter].ch8";
-        //var file = "Particle Demo [zeroZshadow, 2008].ch8";
-        //var file = "Maze (alt) [David Winter, 199x].ch8";
-        //var file = "Clock Program [Bill Fisher, 1981].ch8";
-        //var file = "Chip8 emulator Logo [Garstyciuks].ch8";
-        //var file = "Maze [David Winter, 199x].ch8";
-        //var file = "Sierpinski [Sergey Naydenov, 2010].ch8";
-        //var file = "Stars [Sergey Naydenov, 2010].ch8";
-        file = "c:\\dev\\chipate\\roms\\" + file;
-
-        // TEST SUITE ROMS
-        //var file = "1-chip8-logo.ch8";
-        //var file = "2-ibm-logo.ch8";
-        //var file = "3-corax+.ch8";
-        //var file = "4-flags.ch8";
-        //var file = "5-quirks.ch8";
-        //var file = "6-keypad.ch8";
-        //var file = "7-beep.ch8";
-        //var file = "8-scrolling.ch8"; - xo/super only, ignore for Chip-8 only
-        //var file = "oob_test_7.ch8"; // the oob - out of bounds - rom test - brutal!
-        //file = "c:\\dev\\chipate\\roms\\testsuite\\" + file;
+        mainViewModel = new MainViewModel(chip8, debugger, options);
+        optionsViewModel = new OptionsViewModel(options);
+        fileSelectViewModel = new FileSelectViewModel(options);
     }
 
     protected override void Initialize()
@@ -134,7 +107,7 @@ public partial class Chip8Wrapper : Game
 
         GumUI.Initialize(this, DefaultVisualsVersion.V3);
 
-        SetupMainPanel();
+        SetupMainPanel(mainViewModel);
         SetupOptionsPanel(optionsViewModel);
         SetupFileSelectPanel(fileSelectViewModel);
 
@@ -145,23 +118,26 @@ public partial class Chip8Wrapper : Game
 
     private void SetScene(Scene newScene)
     {
-        if (scene == newScene)
-            return;
-        StopBeep();
+        if (scene == newScene) return;
 
+        StopBeep();
         GumUI.Root.Children.Clear();
+
         scene = newScene;
         switch (scene)
         {
             case Scene.Main:
                 mainPanel.Visual.AddToRoot();
                 break;
+
             case Scene.Options:
                 optionsPanel.Visual.AddToRoot();
                 break;
+
             case Scene.FileSelect:
                 fileSelectPanel.Visual.AddToRoot();
                 break;
+
             case Scene.Game:
                 break;
         }
@@ -194,6 +170,8 @@ public partial class Chip8Wrapper : Game
     private void HandlePanelUpdate(GameTime gameTime)
     {
         GumUI.Update(gameTime);
+        // TODO: want to pick up on Esc here and resume if something is loaded,
+        // but need to sort key debouncing first
     }
 
     private void HandleGameUpdate(GameTime gameTime)
@@ -215,7 +193,8 @@ public partial class Chip8Wrapper : Game
             if (chip8.ROMLoaded)
             {
                 chip8.LoadRom(chip8.ROMPath);
-                // will handle reset, we can't just reset PC as Chip-8 code can be self-modifying etc
+                // will handle reset, we can't just reset the PC as Chip-8 code can be self-modifying etc
+                // LoadRom implicitly does a reset
                 return;
             }
         }
@@ -247,7 +226,8 @@ public partial class Chip8Wrapper : Game
             chip8.Execute();
             _cpuAccumulator -= 1.0;
 
-            // this is the 'Display Wait' quirk - if we've just performed a draw, that's it for this frame, no more opcodes.
+            // this is the 'Display Wait' quirk - if we've just performed a draw,
+            // that's it for this frame, no more opcodes.
             if (chip8.DidDXYN) break;
             if (debugger.Enabled && debugger.SingleStepping) break;
         }

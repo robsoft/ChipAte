@@ -68,7 +68,7 @@ public class Chip8
     private bool romLoaded = false;
     public bool ROMLoaded { get { return romLoaded; } }
     
-    private string romPath = string.Empty;
+    private string romPath = "no ROM loaded";
     public string ROMPath { get { return romPath; } }
 
     

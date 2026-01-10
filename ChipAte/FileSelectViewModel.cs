@@ -2,6 +2,7 @@
 using Gum.Forms.Controls;
 using Gum.Forms.DefaultVisuals.V3;
 using Gum.Mvvm;
+using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -12,7 +13,7 @@ namespace ChipAte;
 public partial class FileSelectViewModel : ViewModel
 {
     private bool loading = false;
-    //public ListBox FilesListBox { get; set; }
+    private Options _options;
 
     public void BrowseFiles(string folder)
     {
@@ -114,10 +115,17 @@ public partial class FileSelectViewModel : ViewModel
         return false;
     }
 
-    public FileSelectViewModel()
+    public FileSelectViewModel(Options options)
     {
+        _options = options;
+
         SelectedFilePath = string.Empty;
-        AvailablePlaces = new ObservableCollection<PlaceItem>(PlacesProvider.GetPlaces());
+
+        var places = PlacesProvider.GetPlaces();
+        PlacesProvider.InsertIfValid(places, "Application Folder", AppContext.BaseDirectory);
+        PlacesProvider.InsertIfValid(places, options.LastLoadFromFolder, options.LastLoadFromFolder);
+
+        AvailablePlaces = new ObservableCollection<PlaceItem>(places);
         SelectedPlace = AvailablePlaces.FirstOrDefault();
     }
 }

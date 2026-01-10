@@ -17,41 +17,6 @@ namespace ChipAte;
 
 public partial class Chip8Wrapper
 {
-    private void QuitButton_Click(object sender, System.EventArgs e)
-    {
-        StopBeep();
-        GumUI.Root.Children.Clear();
-        Exit();
-    }
-
-    private void ReturnButton_Click(object sender, System.EventArgs e)
-    {
-        SetScene(Scene.Main);
-    }
-    private void OptionsButton_Click(object sender, System.EventArgs e)
-    {
-        SetScene(Scene.Options);
-    }
-    private void SelectFileButton_Click(object sender, System.EventArgs e)
-    {
-        SetScene(Scene.FileSelect);
-    }
-    private void StartButton_Click(object sender, System.EventArgs e)
-    {
-        if (!chip8.ROMLoaded)
-        {
-            var file = "Brix [Andreas Gustafsson, 1990].ch8";
-            file = "c:\\dev\\chipate\\roms\\" + file;
-            if (!chip8.LoadRom(file))
-            {
-                throw new System.Exception($"Failed to load ROM {file}");
-            }
-        }
-        SetScene(Scene.Game);
-    }
-    private void NoEvent_Click(object sender, System.EventArgs e)
-    {
-    }
 
     private void SetupOptionsPanel(OptionsViewModel optionsViewModel)
     {
@@ -68,13 +33,16 @@ public partial class Chip8Wrapper
         var returnButton = new Button();
         returnButton.Text = "Return";
         returnButton.Visual.Width = 200;
-        returnButton.Click += ReturnButton_Click;
+        //TODO: need this to copy into options class and 'save'
+        returnButton.Click += (s, e) => SetScene(Scene.Main);
         returnButton.Anchor(Anchor.Top);
         optionsPanel.AddChild(returnButton);
 
     }
 
-    void HandleItemClicked(object? sender, EventArgs args)
+
+    //TODO: push this into the viewmodel
+    private void HandleItemClicked(object? sender, EventArgs args)
     {
         if (GumService.Default.Cursor.PrimaryDoubleClick)
         {
@@ -87,13 +55,14 @@ public partial class Chip8Wrapper
                     {
                         if (chip8.LoadRom(fileSelectViewModel.SelectedFilePath))
                         {
-                            SetScene(Scene.Game);
+                            RunConsole();
                         }
                     }
                 }
             }
         }
     }
+    
 
     private void SetupFileSelectPanel(FileSelectViewModel fileSelectViewModel)
     {
@@ -109,18 +78,13 @@ public partial class Chip8Wrapper
         titleLabel.Anchor(Anchor.Top);
         fileSelectPanel.AddChild(titleLabel);
 
-        var testLabel = new Label();
-        testLabel.Anchor(Anchor.Top);
-        testLabel.SetBinding(nameof(testLabel.Text), nameof(fileSelectViewModel.SelectedFilePath));
-        fileSelectPanel.AddChild(testLabel);
-
         var drivesComboBox = new ComboBox();
-        drivesComboBox.Visual.Width = 400;
+        drivesComboBox.Visual.Width = 500;
         drivesComboBox.Anchor(Anchor.Top);
         fileSelectPanel.AddChild(drivesComboBox);
 
         var filesListBox = new ListBox();
-        filesListBox.Visual.Width = 400;
+        filesListBox.Visual.Width = 500;
         filesListBox.Anchor(Anchor.Top);
         filesListBox.ItemClicked += HandleItemClicked;
         fileSelectPanel.AddChild(filesListBox);
@@ -140,7 +104,7 @@ public partial class Chip8Wrapper
             {
                 if (chip8.LoadRom(fileSelectViewModel.SelectedFilePath))
                 {
-                    SetScene(Scene.Game);
+                    RunConsole();
                 }
             }
         };
@@ -148,7 +112,7 @@ public partial class Chip8Wrapper
         var returnButton = new Button();
         returnButton.Text = "Cancel";
         returnButton.Visual.Width = 150;
-        returnButton.Click += ReturnButton_Click;
+        returnButton.Click += (s, e) => SetScene(Scene.Main);
 
         fileSelectPanel.AddChild(buttonsPanel);
         buttonsPanel.AddChild(okButton);
@@ -162,14 +126,23 @@ public partial class Chip8Wrapper
 
         filesListBox.SetBinding(nameof(filesListBox.Items), nameof(fileSelectViewModel.AvailableFiles));
         // dont do this, we are going to bind this ourselves
-        // filesListBox.SetBinding(nameof(filesListBox.SelectedObject), nameof(fileSelectViewModel.SelectedBrowserEntry));
+        filesListBox.SetBinding(nameof(filesListBox.SelectedObject), nameof(fileSelectViewModel.SelectedBrowserEntry));
         filesListBox.FrameworkElementTemplate =
             new Gum.Forms.FrameworkElementTemplate(typeof(BrowseFileListBoxItem));
     }
 
-    private void SetupMainPanel()
+    private void RunConsole()
+    {
+            if (chip8.ROMLoaded)
+            {
+                SetScene(Scene.Game);
+            }
+    }
+
+    private void SetupMainPanel(MainViewModel mainViewModel)
     {
         mainPanel = new StackPanel();
+        mainPanel.BindingContext = mainViewModel;
         mainPanel.Visual.AddToRoot();
 
         mainPanel.Visual.ChildrenLayout = Gum.Managers.ChildrenLayout.TopToBottomStack;
@@ -187,35 +160,42 @@ public partial class Chip8Wrapper
         mainPanel.AddChild(versionLabel);
 
         var currentRomLabel = new Label();
-        currentRomLabel.Text = "No ROM loaded";
+        //TODO: need to get this back from FileSelect etc
+        currentRomLabel.SetBinding(nameof(currentRomLabel.Text), nameof(mainViewModel.FilePath));
         currentRomLabel.Anchor(Anchor.Top);
         mainPanel.AddChild(currentRomLabel);
 
         var startButton = new Button();
         startButton.Text = "Start/Resume";
         startButton.Visual.Width = 200;
-        startButton.Click += StartButton_Click;
+        startButton.Click += (s, e) => RunConsole();
+
         startButton.Anchor(Anchor.Top);
         mainPanel.AddChild(startButton);
 
         var selectFileButton = new Button();
         selectFileButton.Text = "Load ROM";
         selectFileButton.Visual.Width = 200;
-        selectFileButton.Click += SelectFileButton_Click;
+        selectFileButton.Click += (s, e) => SetScene(Scene.FileSelect);
         selectFileButton.Anchor(Anchor.Top);
         mainPanel.AddChild(selectFileButton);
 
         var optionsButton = new Button();
         optionsButton.Text = "Options";
         optionsButton.Visual.Width = 200;
-        optionsButton.Click += OptionsButton_Click;
+        optionsButton.Click += (s, e) => SetScene(Scene.Options);
         optionsButton.Anchor(Anchor.Top);
         mainPanel.AddChild(optionsButton);
 
         var quitButton = new Button();
         quitButton.Text = "Quit";
         quitButton.Visual.Width = 200;
-        quitButton.Click += QuitButton_Click;
+        quitButton.Click += (s, e) =>
+        {
+            StopBeep();
+            GumUI.Root.Children.Clear();
+            Exit();
+        };
         quitButton.Anchor(Anchor.Top);
         mainPanel.AddChild(quitButton);
 

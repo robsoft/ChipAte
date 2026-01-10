@@ -1,7 +1,10 @@
-﻿using Gum.Forms.Controls;
+﻿using ChipAte;
+using Gum.Forms.Controls;
 using Gum.Forms.DefaultVisuals.V3;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -30,7 +33,7 @@ public class PlaceDisplay : ListBoxItem
 public static class PlacesProvider
 {
     // return a list of 'places' - special folders and drives
-    public static IReadOnlyList<PlaceItem> GetPlaces()
+    public static List<PlaceItem> GetPlaces()
     {
         var places = new List<PlaceItem>();
         // a few “special folders”
@@ -38,9 +41,7 @@ public static class PlacesProvider
         AddIfValid(places, "Desktop", Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory));
         AddIfValid(places, "Downloads", GetDownloadsPathBestEffort());
         AddIfValid(places, "Documents", Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
-        AddIfValid(places, "AppData", Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
         AddIfValid(places, "AppData Local", Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
-        AddIfValid(places, "AppData Common", Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData));
 
         // drives / mounted volumes
         foreach (var d in DriveInfo.GetDrives().OrderBy(d => d.Name))
@@ -65,10 +66,9 @@ public static class PlacesProvider
         return places;
     }
 
-
-    private static void AddIfValid(List<PlaceItem> list, string name, string? path)
+    private static bool CanAdd(List<PlaceItem> list, string name, string? path)
     {
-        if (string.IsNullOrWhiteSpace(path)) return;
+        if (string.IsNullOrWhiteSpace(path)) return false;
 
         // normalize and ensure it exists (avoids dead entries on some platforms)
         try
@@ -77,11 +77,34 @@ public static class PlacesProvider
         }
         catch
         {
-            return;
+            return false;
         }
 
         if (Directory.Exists(path))
+        {
+            // only add if not already in the list
+            if (list.Any(p => string.Equals(p.Path, path, StringComparison.OrdinalIgnoreCase)))
+                return false;
+        }
+        return true;
+    }
+    
+    
+    public static void AddIfValid(List<PlaceItem> list, string name, string? path)
+    {
+        if (CanAdd(list, name, path))
+        {
             list.Add(new PlaceItem(name, path));
+        }
+    }
+
+
+    public static void InsertIfValid(List<PlaceItem> list, string name, string? path)
+    {
+        if (CanAdd(list, name, path))
+        {
+            list.Insert(0, new PlaceItem(name, path));
+        }
     }
 
 
