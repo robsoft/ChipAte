@@ -97,7 +97,7 @@ public partial class FileSelectViewModel : ViewModel
         loading = false;
     }
 
-    public bool ConfirmFile(BrowserEntry entry)
+    public bool ConfirmFile(BrowserEntry? entry)
     {
         if (entry == null || string.IsNullOrEmpty(entry.FullPath)) return false;
 

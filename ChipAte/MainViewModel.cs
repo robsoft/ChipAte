@@ -14,7 +14,11 @@ public class MainViewModel : ViewModel
     private Chip8Debugger _debugger;
     private Options _options;
 
-    public string FilePath { get; set; }
+    public string FilePath
+    {
+        get => Get<string>();
+        set => Set(value);
+    }
 
     public MainViewModel(Chip8 chip8, Chip8Debugger debugger, Options options)
     {

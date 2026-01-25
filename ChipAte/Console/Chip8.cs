@@ -28,7 +28,7 @@ public class Chip8
     // TODO: change Memory, Registers, Keypad so that we access them through methods which can protect
     // against OOB, rather than just throwing arrays around everywhere.
     private const int MEMORY_SIZE = 4096;
-    private byte[] memory;
+    private byte[] memory = new byte[MEMORY_SIZE];
     private const int START_ADDRESS = 0x200;
 
     public const int DISPLAY_WIDTH = 64;

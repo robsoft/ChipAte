@@ -4,9 +4,6 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using Gum.DataTypes;
-using Gum.Managers;
-using Gum.Wireframe;
 
 using MonoGameGum;
 using Gum.Forms.Controls;
@@ -21,6 +18,10 @@ namespace ChipAte;
 
 public partial class Chip8Wrapper : Game
 {
+
+    public const string APP_NAME = "ChipAte";
+    public const string APP_VERSION = "v 0.02";
+
     private enum Scene {
         None,
         Game,
@@ -31,16 +32,16 @@ public partial class Chip8Wrapper : Game
     private readonly ILogger<Chip8Wrapper> _log;
 
     private GraphicsDeviceManager _graphics;
-    private SpriteBatch _spriteBatch;
-    private Texture2D _pixelTex;
-    private SoundEffect _beepEffect;
-    private SoundEffectInstance _beepInstance;
+    private SpriteBatch? _spriteBatch;
+    private Texture2D? _pixelTex;
+    private SoundEffect? _beepEffect;
+    private SoundEffectInstance? _beepInstance;
     private Rectangle _playfieldRect;
 
     GumService GumUI => GumService.Default;
-    StackPanel mainPanel;
-    StackPanel optionsPanel;
-    StackPanel fileSelectPanel;
+    Panel? mainPanel;
+    Panel? optionsPanel;
+    Panel? fileSelectPanel;
     private Scene scene = Scene.None;
 
     private Chip8 chip8;
@@ -136,15 +137,15 @@ public partial class Chip8Wrapper : Game
         switch (scene)
         {
             case Scene.Main:
-                mainPanel.Visual.AddToRoot();
+                mainPanel?.Visual.AddToRoot();
                 break;
 
             case Scene.Options:
-                optionsPanel.Visual.AddToRoot();
+                optionsPanel?.Visual.AddToRoot();
                 break;
 
             case Scene.FileSelect:
-                fileSelectPanel.Visual.AddToRoot();
+                fileSelectPanel?.Visual.AddToRoot();
                 break;
 
             case Scene.Game:
@@ -208,11 +209,13 @@ public partial class Chip8Wrapper : Game
             }
         }
 
+        /*
+        //TODO: debugger!
         if (Keyboard.GetState().IsKeyDown(Keys.F12))
         {
             debugger.Enabled = !debugger.Enabled;
         }
-
+        */
 
 
         // actual CHIP-8 related Update code
@@ -283,9 +286,9 @@ public partial class Chip8Wrapper : Game
 
     private void HandleGameDraw(GameTime gameTime)
     { 
-        _spriteBatch.Begin(samplerState: SamplerState.PointClamp);
+        _spriteBatch?.Begin(samplerState: SamplerState.PointClamp);
         // PointClamp avoids smoothing if we ever scale textures.
-        _spriteBatch.Draw(_pixelTex, _playfieldRect, BackgroundColor);
+        _spriteBatch?.Draw(_pixelTex, _playfieldRect, BackgroundColor);
 
         // skip through our screen buffer, and draw pixels
         // we don't need to consider 'undrawing' because MG clears the screen each frame
@@ -304,11 +307,11 @@ public partial class Chip8Wrapper : Game
                     offset + y * scale,
                     scale,
                     scale);
-                _spriteBatch.Draw(_pixelTex, dest, PixelColor);
+                _spriteBatch?.Draw(_pixelTex, dest, PixelColor);
             }
         }
 
-        _spriteBatch.End();
+        _spriteBatch?.End();
 
         base.Draw(gameTime);
     }
@@ -369,15 +372,15 @@ public partial class Chip8Wrapper : Game
     private void StartBeep()
     {
         beepPlaying = true;
-        if (_beepInstance.State != SoundState.Playing)
-            _beepInstance.Play();
+        if (_beepInstance?.State != SoundState.Playing)
+            _beepInstance?.Play();
     }
 
     // stop the beep sound effect, if necessary
     private void StopBeep()
     {
-        if (_beepInstance.State == SoundState.Playing)
-            _beepInstance.Stop();
+        if (_beepInstance?.State == SoundState.Playing)
+            _beepInstance?.Stop();
         beepPlaying = false;
     }
 }

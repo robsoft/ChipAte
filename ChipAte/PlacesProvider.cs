@@ -92,18 +92,24 @@ public static class PlacesProvider
     
     public static void AddIfValid(List<PlaceItem> list, string name, string? path)
     {
-        if (CanAdd(list, name, path))
+        if (!string.IsNullOrWhiteSpace(path))
         {
-            list.Add(new PlaceItem(name, path));
+            if (CanAdd(list, name, path))
+            {
+                list.Add(new PlaceItem(name, path));
+            }
         }
     }
 
 
     public static void InsertIfValid(List<PlaceItem> list, string name, string? path)
     {
-        if (CanAdd(list, name, path))
+        if (!string.IsNullOrWhiteSpace(path))
         {
-            list.Insert(0, new PlaceItem(name, path));
+            if (CanAdd(list, name, path))
+            {
+                list.Insert(0, new PlaceItem(name, path));
+            }
         }
     }
 

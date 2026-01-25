@@ -10,12 +10,12 @@ namespace ChipAte;
 
 public static class DisplaySizes
 {
-    private const int SmallWidth = 640;
-    private const int SmallHeight = 480;
-    private const int DefaultWidth = 800;
-    private const int DefaultHeight = 600;
-    private const int LargeWidth = 1024;
-    private const int LargeHeight = 768;
+    private const int SmallWidth = 800;
+    private const int SmallHeight = 600;
+    private const int DefaultWidth = 1024;
+    private const int DefaultHeight = 768;
+    private const int LargeWidth = 1280;
+    private const int LargeHeight = 1024;
     private const int FullScreenWidth = 0;
     private const int FullScreenHeight = 0;
 
