@@ -4,7 +4,8 @@
 
 ### a first-pass at a Chip-8 emulated 'virtual' computer system (in C# and MonoGame)
 
-There are a bunch of test roms (and sample roms) in the repo, but you'll have to edit the Chip8Wrapper file (it's obvious where).  
+Test roms can be found at the links below.
+
 The keypad is currently hardcoded as  
 ```
 1  2  3  4
